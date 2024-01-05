@@ -27,7 +27,23 @@ if st.checkbox("Check my location"):
     loc = get_geolocation()
     st.write(f"Your coordinates are {loc}")
 
-    latitude = loc['coords']['latitude']
-    longitude = loc['coords']['longitude']
+    lat = loc['coords']['latitude']
+    long = loc['coords']['longitude']
 
-    st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
+    #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
+
+    from geopy.geocoders import Nominatim
+
+    geolocator = Nominatim(user_agent="nearest-town-finder")
+    location = geolocator.reverse((lat, long), exactly_one=True)
+    if location:
+        nearest_town = location.address.split(",")[2].strip()
+        st.write("nearest_town:", nearest_town)
+
+    import reverse_geocoder as rg
+    coordinates = (lat, long)
+    searchLokalInfo = rg.search(coordinates)
+    searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
+    st.write("searchLokalInfo_name: ", searchLokalInfo_name)
+    Town = searchLokalInfo_name[0]
+    st.write("Town: ", Town)
