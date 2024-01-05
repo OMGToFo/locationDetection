@@ -2,6 +2,8 @@ import streamlit as st
 from streamlit_js_eval import streamlit_js_eval, copy_to_clipboard, create_share_link, get_geolocation
 import json
 
+
+_=""" Interesting but not here
 st.write(
     f"User agent is _{streamlit_js_eval(js_expressions='window.navigator.userAgent', want_output=True, key='UA')}_")
 
@@ -12,6 +14,9 @@ st.write(
 
 st.write(
     f"Page location is _{streamlit_js_eval(js_expressions='window.location.origin', want_output=True, key='LOC')}_")
+
+
+"""
 
 # Copying to clipboard only works with a HTTP connection
 
@@ -25,25 +30,37 @@ st.write(
 
 if st.checkbox("Check my location"):
     loc = get_geolocation()
-    st.write(f"Your coordinates are {loc}")
+    if loc:
+        st.write(f"Your coordinates are {loc}")
 
-    lat = loc['coords']['latitude']
-    long = loc['coords']['longitude']
+        lat = loc['coords']['latitude']
+        long = loc['coords']['longitude']
 
-    #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
+        st.write("Latitude: ",lat)
+        st.write("Longitude: ", long)
 
-    from geopy.geocoders import Nominatim
+        #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
 
-    geolocator = Nominatim(user_agent="nearest-town-finder")
-    location = geolocator.reverse((lat, long), exactly_one=True)
-    if location:
-        nearest_town = location.address.split(",")[2].strip()
-        st.write("nearest_town:", nearest_town)
+        from geopy.geocoders import Nominatim
 
-    import reverse_geocoder as rg
-    coordinates = (lat, long)
-    searchLokalInfo = rg.search(coordinates)
-    searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
-    st.write("searchLokalInfo_name: ", searchLokalInfo_name)
-    Town = searchLokalInfo_name[0]
-    st.write("Town: ", Town)
+        geolocator = Nominatim(user_agent="nearest-town-finder")
+        location = geolocator.reverse((lat, long), exactly_one=True)
+        if location:
+            location_adress = location.address.split(",")
+            st.write("location_adress:", location_adress)
+
+            nearest_town = location.address.split(",")[3].strip()
+            st.write("nearest_town:", nearest_town)
+
+
+        import reverse_geocoder as rg
+        coordinates = (lat, long)
+        searchLokalInfo = rg.search(coordinates)
+
+        st.write("searchLokalInfo: ",searchLokalInfo)
+
+        searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
+        st.write("searchLokalInfo_name: ", searchLokalInfo_name)
+        Town = searchLokalInfo_name[0]
+        st.write("Town: ", Town)
+
