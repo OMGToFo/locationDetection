@@ -1,45 +1,33 @@
 import streamlit as st
-import geocoder
-from geopy.geocoders import Nominatim
+from streamlit_js_eval import streamlit_js_eval, copy_to_clipboard, create_share_link, get_geolocation
+import json
 
+st.write(
+    f"User agent is _{streamlit_js_eval(js_expressions='window.navigator.userAgent', want_output=True, key='UA')}_")
 
-def get_user_location():
-    try:
-        # Using geocoder to get the user's location
-        location = geocoder.ip('me').latlng
-        return location
-    except Exception as e:
-        st.error(f"Error fetching location: {e}")
-        return None
+st.write(f"Screen width is _{streamlit_js_eval(js_expressions='screen.width', want_output=True, key='SCR')}_")
 
+st.write(
+    f"Browser language is _{streamlit_js_eval(js_expressions='window.navigator.language', want_output=True, key='LANG')}_")
 
-def get_nearest_city(latitude, longitude):
-    geolocator = Nominatim(user_agent="location-detector")
-    location = geolocator.reverse((latitude, longitude), language='en')
+st.write(
+    f"Page location is _{streamlit_js_eval(js_expressions='window.location.origin', want_output=True, key='LOC')}_")
 
-    # Extracting the city name from the address
-    city = None
-    if location and location.raw.get('address', {}).get('city'):
-        city = location.raw['address']['city']
-    elif location and location.raw.get('address', {}).get('town'):
-        city = location.raw['address']['town']
-    elif location and location.raw.get('address', {}).get('village'):
-        city = location.raw['address']['village']
+# Copying to clipboard only works with a HTTP connection
 
-    return city if city else "Unknown"
+#copy_to_clipboard("Text to be copied!", "Copy something to clipboard (only on HTTPS)", "Successfully copied",
+   #               component_key="CLPBRD")
 
+# Share something using the sharing API
+#create_share_link(dict(
+#    {'title': 'streamlit-js-eval', 'url': 'https://github.com/aghasemi/streamlit_js_eval', 'text': "A description"}),
+  #                "Share a URL (only on mobile devices)", 'Successfully shared', component_key='shdemo')
 
-def main():
-    st.title("Location Detector App")
+if st.checkbox("Check my location"):
+    loc = get_geolocation()
+    st.write(f"Your coordinates are {loc}")
 
-    if st.button("Get My Location"):
-        location = get_user_location()
-        if location:
-            st.success(f"Your location: Latitude {location[0]}, Longitude {location[1]}")
+    latitude = loc['coords']['latitude']
+    longitude = loc['coords']['longitude']
 
-            nearest_city = get_nearest_city(location[0], location[1])
-            st.info(f"Nearest city: {nearest_city}")
-
-
-if __name__ == "__main__":
-    main()
+    st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
