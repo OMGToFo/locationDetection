@@ -5,6 +5,8 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
+import time
+
 
 _=""" Interesting but not here
 st.write(
@@ -52,7 +54,7 @@ def scrape_wikipedia(location_name):
 
 
 
-if st.checkbox("Check my location"):
+if st.checkbox("Check my location", value=True):
     loc = get_geolocation()
     if loc:
         st.write(f"Your coordinates are {loc}")
@@ -65,28 +67,43 @@ if st.checkbox("Check my location"):
 
         #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
 
-        from geopy.geocoders import Nominatim
+
+        st.subheader("")
+
+        from geopy.geocoders import Nominatim ########################
+
+        time.sleep(1)
 
         geolocator = Nominatim(user_agent="nearest-town-finder")
         location = geolocator.reverse((lat, long), exactly_one=True)
         if location:
             location_adress = location.address.split(",")
-            st.write("location_adress:", location_adress)
+            location_adressExpander = st.expander("location_adress by Nominatim geolocator")
+            with location_adressExpander:
+                st.write("location_adress by Nominatim geolocator: ", location_adress)
 
             nearest_town = location.address.split(",")[3].strip()
             st.write("nearest_town:", nearest_town)
 
+        st.subheader("")
 
-        import reverse_geocoder as rg
+        import reverse_geocoder as rg ################################
         coordinates = (lat, long)
         searchLokalInfo = rg.search(coordinates)
+        if searchLokalInfo:
 
-        st.write("searchLokalInfo: ",searchLokalInfo)
+            searchLokalInfoExpander = st.expander("searchLokalInfo by reverse_geocoder")
+            with searchLokalInfoExpander:
+                st.write("searchLokalInfo by reverse_geocoder: ",searchLokalInfo)
 
-        searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
-        st.write("searchLokalInfo_name: ", searchLokalInfo_name)
-        Town = searchLokalInfo_name[0]
-        st.write("Town: ", Town)
+            searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
+            #st.write("searchLokalInfo_name: ", searchLokalInfo_name)
+            Town = searchLokalInfo_name[0]
+            st.write("Town: ", Town)
+
+            searchLokalInfo_admin1 = [y.get('admin1') for y in searchLokalInfo]
+            Admin1 = searchLokalInfo_admin1[0]
+            st.write("Admin1: ", Admin1)
 
         _="""
         geolocator = Nominatim(user_agent="nearest-town-finder")
@@ -105,17 +122,29 @@ if st.checkbox("Check my location"):
             #st.write("Town:", Town)
 
         """
+
+        st.subheader("")
+
         if location:
-            visaWiki = st.checkbox("Show Wikipedia Info", key="hej")
+            visaWiki = st.checkbox("Show Wikipedia Info", value=True,key="hej")
             if visaWiki:
 
-                wiki_info1 = scrape_wikipedia(Town)
+                nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+
+                wiki_info1 = scrape_wikipedia(nearest_town)
                 if wiki_info1 != None:
-                    st.subheader(f"{Town}")
+                    st.subheader(f"{nearest_town}")
                     st.write(wiki_info1)
                 else:
-                    wiki_info2 = scrape_wikipedia(nearest_town)
+                    st.info("Did not find " + nearest_town + " on Wikipedia")
+                    wiki_info2 = scrape_wikipedia(Town)
                     if wiki_info2 != None:
-                        st.subheader(f"{nearest_town}")
+                        st.subheader(f"{Town}")
                         st.write(wiki_info2)
-
+                    else:
+                        wiki_info3 = scrape_wikipedia(Admin1)
+                        if wiki_info3 != None:
+                            st.subheader(f"{Admin1}")
+                            st.write(wiki_info3)
+                        else:
+                            st.warning("Did not find any info Wikipedia - try a different location")
