@@ -8,6 +8,21 @@ from bs4 import BeautifulSoup
 import time
 
 
+from datetime import datetime
+
+
+
+
+#text to speech
+from gtts import gTTS
+from io import BytesIO
+
+#mapping
+
+import folium
+from streamlit_folium import st_folium
+
+
 _=""" Interesting but not here
 st.write(
     f"User agent is _{streamlit_js_eval(js_expressions='window.navigator.userAgent', want_output=True, key='UA')}_")
@@ -57,13 +72,30 @@ def scrape_wikipedia(location_name):
 if st.checkbox("Check my location", value=True):
     loc = get_geolocation()
     if loc:
-        st.write(f"Your coordinates are {loc}")
+
+        gelocExpander = st.expander("Show geolocation data:")
+        with gelocExpander:
+            st.write(f"Your coordinates are {loc}")
 
         lat = loc['coords']['latitude']
         long = loc['coords']['longitude']
+        altitude = loc['coords']['altitude']
+        speed = loc['coords']['speed']
+        timestamp = loc['timestamp'] / 1000
+        formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%H:%M:%S')
+
+        st.write("Formatted Time:", formatted_time)
+
+
+        if altitude != None:
+            st.write("Altitude: ", altitude)
+
+        if speed != None:
+            st.write("Speed: ", speed)
 
         st.write("Latitude: ",lat)
         st.write("Longitude: ", long)
+
 
         #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
 
@@ -123,10 +155,22 @@ if st.checkbox("Check my location", value=True):
 
         """
 
+        # Create a map centered around the locations
+        map = folium.Map(location=[lat,long], zoom_start=25)
+        folium.Marker(
+            [lat,long], popup=Town, tooltip=Town
+        ).add_to(map)
+
+        # Display the map
+        st_data = st_folium(map, width=725)
+
+
+
         st.subheader("")
 
         if location:
-            visaWiki = st.checkbox("Show Wikipedia Info", value=True,key="hej")
+            visaWiki = st.checkbox("Show Wikipedia Info", value=False,key="hej")
+            wikiTextZumVorlesen = ""
             if visaWiki:
 
                 nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
@@ -135,16 +179,27 @@ if st.checkbox("Check my location", value=True):
                 if wiki_info1 != None:
                     st.subheader(f"{nearest_town}")
                     st.write(wiki_info1)
+                    wikiTextZumVorlesen = wiki_info1
                 else:
                     st.info("Did not find " + nearest_town + " on Wikipedia")
                     wiki_info2 = scrape_wikipedia(Town)
                     if wiki_info2 != None:
                         st.subheader(f"{Town}")
                         st.write(wiki_info2)
+                        wikiTextZumVorlesen = wiki_info2
                     else:
                         wiki_info3 = scrape_wikipedia(Admin1)
                         if wiki_info3 != None:
                             st.subheader(f"{Admin1}")
                             st.write(wiki_info3)
+                            wikiTextZumVorlesen = wiki_info3
                         else:
                             st.warning("Did not find any info Wikipedia - try a different location")
+
+                if wikiTextZumVorlesen != "":
+                    textToSPeech = st.checkbox("Read Infos (Text-to-Speech")
+                    if textToSPeech:
+                        sound_file = BytesIO()
+                        tts = gTTS(wikiTextZumVorlesen, lang='en')
+                        tts.write_to_fp(sound_file)
+                        st.audio(sound_file)
