@@ -380,7 +380,7 @@ if st.checkbox("Check my location", value=True):
                 # Get nearby EV charging stations
                 charging_stations = get_nearby_charging_stations(lat, long)
 
-                st.write(charging_stations)
+               #alle infos vom api st.write(charging_stations)
 
                 # Create a Pandas DataFrame to store charging station information
                 charging_station_df = pd.DataFrame({
