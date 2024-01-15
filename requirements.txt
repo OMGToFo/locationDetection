@@ -22,3 +22,4 @@ reverse_geocoder==1.5.1
 beautifulsoup4==4.12.2
 gTTS==2.5.0
 streamlit_folium==0.13.0
+
