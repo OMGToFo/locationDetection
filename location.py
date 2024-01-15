@@ -11,8 +11,6 @@ import time
 from datetime import datetime
 
 
-
-
 #text to speech
 from gtts import gTTS
 from io import BytesIO
@@ -21,6 +19,39 @@ from io import BytesIO
 
 import folium
 from streamlit_folium import st_folium
+
+
+from datetime import datetime
+from timezonefinder import TimezoneFinder
+import pytz
+
+
+import pandas as pd
+
+
+def get_timezone(lat, lon):
+    tf = TimezoneFinder()
+    timezone_str = tf.timezone_at(lng=lon, lat=lat)
+    return timezone_str
+
+
+def convert_timestamp_to_readable(timestamp, lat, lon):
+    # Convert timestamp to seconds
+    timestamp_seconds = timestamp / 1000
+
+    # Detect timezone using latitude and longitude
+    timezone_str = get_timezone(lat, lon)
+
+    # Specify the timezone
+    timezone = pytz.timezone(timezone_str)
+
+    # Convert the timestamp to a datetime object in the detected timezone
+    dt_object = datetime.utcfromtimestamp(timestamp_seconds).replace(tzinfo=pytz.utc).astimezone(timezone)
+
+    # Format the datetime object as 'hh:mm:ss' in the detected timezone
+    formatted_time = dt_object.strftime('%H:%M:%S')
+
+    return formatted_time
 
 
 _=""" Interesting but not here
@@ -65,9 +96,50 @@ def scrape_wikipedia(location_name):
         return None
 
 
+def get_nearby_restaurants(latitude, longitude):
+    # Use an API (e.g., Yelp) to get nearby restaurants based on coordinates
+    # Replace 'YOUR_YELP_API_KEY' with your actual Yelp API key
+    yelp_api_key = 'HIjFe3Ef0MKvDF7A0TJsdyMevXeYyQ_yuvLT89rZ5Nc6AcivbTF0J2qCl_4lVvO0QYTTnzQTfj-i9DOQG2328E48SoO-CT_Nl8hMpLvLZsMIuEUuUVfej2MzYYilZXYx'
+    yelp_api_url = 'https://api.yelp.com/v3/businesses/search'
+
+    headers = {'Authorization': f'Bearer {yelp_api_key}'}
+    params = {'latitude': latitude, 'longitude': longitude, 'categories': 'restaurants', 'limit': 5}
+
+    response = requests.get(yelp_api_url, headers=headers, params=params)
+    data = response.json()
+
+    return data['businesses']
+
+
+def get_nearby_charging_stations(latitude, longitude):
+    # Use Open Charge Map API to get nearby EV charging stations
+    # Replace 'YOUR_OCM_API_KEY' with your actual Open Charge Map API key
+    ocm_api_key = '2d4b6129-05b6-4dd8-8e06-66584b7a3bc0'
+    ocm_api_url = 'https://api.openchargemap.io/v3/poi/'
+
+    params = {
+        'output': 'json',
+        'latitude': lat,
+        'longitude': long,
+        'distance': 30,  # Search radius in kilometers
+        'distanceunit': 'KM',
+        'countrycode': 'CH',  # Replace with the appropriate country code
+        'maxresults': 10  # Maximum number of results
+    }
+
+    headers = {'X-API-Key': ocm_api_key}
+
+    response = requests.get(ocm_api_url, params=params, headers=headers)
+    data = response.json()
+
+    return data
 
 
 
+
+
+
+st.title("Simple Locationinfo")
 
 if st.checkbox("Check my location", value=True):
     loc = get_geolocation()
@@ -81,8 +153,10 @@ if st.checkbox("Check my location", value=True):
         long = loc['coords']['longitude']
         altitude = loc['coords']['altitude']
         speed = loc['coords']['speed']
-        timestamp = loc['timestamp'] / 1000
-        formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%H:%M:%S')
+
+
+        timestamp = loc['timestamp']
+        formatted_time = convert_timestamp_to_readable(timestamp, lat, long)
 
         st.write("Formatted Time:", formatted_time)
 
@@ -169,7 +243,9 @@ if st.checkbox("Check my location", value=True):
         st.subheader("")
 
         if location:
-            visaWiki = st.checkbox("Show Wikipedia Info", value=False,key="hej")
+            togglecol1, togglecol2, togglecol3 = st.columns(3)
+
+            visaWiki = togglecol1.toggle ("Show Wikipedia Info", value=False,key="hej")
             wikiTextZumVorlesen = ""
             if visaWiki:
 
@@ -203,3 +279,143 @@ if st.checkbox("Check my location", value=True):
                         tts = gTTS(wikiTextZumVorlesen, lang='en')
                         tts.write_to_fp(sound_file)
                         st.audio(sound_file)
+
+
+
+            visaRestaurants = togglecol2.toggle("Show nearest restaurants")
+            if visaRestaurants:
+                # Display nearby restaurants
+                restaurants = get_nearby_restaurants(lat, long)
+
+                # Create a Pandas DataFrame to store restaurant information
+                restaurant_df = pd.DataFrame({
+                    'Name': [restaurant['name'] for restaurant in restaurants],
+                    'Phone': [restaurant['phone'] for restaurant in restaurants],
+                    'Rating': [restaurant['rating'] for restaurant in restaurants],
+                    'Location': [f"{restaurant['location']['address1']}, {restaurant['location']['city']}" for
+                                 restaurant in restaurants],
+
+                    'Distance': [restaurant['distance'] for restaurant in restaurants],
+
+                    'Category': [f"{restaurant['categories'][0]['title']}" for
+                                 restaurant in restaurants],
+
+                    'Reviews on Yelp': [restaurant['review_count'] for restaurant in restaurants],
+
+                    'Latitude': [f"{restaurant['coordinates']['latitude']}" for
+                                 restaurant in restaurants],
+                    'Longitude': [f"{restaurant['coordinates']['longitude']}" for
+                                 restaurant in restaurants],
+
+                })
+
+                restaurant_df.sort_values(by=['Distance'], inplace=True)
+                st.subheader("")
+                st.subheader("Nearest Restaurants (from Yelp)")
+                st.write(restaurant_df)
+
+                #Alle infos in der Api: st.write(restaurants)
+
+                # Create a Folium Map
+                st.subheader("Map of Nearby Restaurants:")
+                map_center = (lat, long)
+                restaurant_map = folium.Map(location=map_center, zoom_start=15)
+
+                # Add markers for each restaurant
+                for i, row in restaurant_df.iterrows():
+                    folium.Marker(
+                        location=[row['Latitude'], row['Longitude']],
+                        popup=f"{row['Name']} - Rating: {row['Rating']}",
+                        icon=folium.Icon(color='red'),
+                        tooltip=f"{row['Name']} - {row['Category']} - Rating: {row['Rating']}",
+                    ).add_to(restaurant_map)
+
+                # Add a marker for the user's location
+                folium.Marker(
+                    location=[lat, long],
+                    popup="Your Location",
+                    tooltip="Your Location",
+                    icon=folium.Icon(color='blue', icon='info-sign')
+                ).add_to(restaurant_map)
+
+
+                # Display the map in Streamlit
+                st_Restaurang_data = st_folium(restaurant_map, width=725)
+
+
+
+
+                _="""
+                st.write(restaurants)
+
+                st.subheader("Nearby Restaurants:")
+                for restaurant in restaurants:
+
+
+                    #st.sidebar.write(f"- {restaurant['name']} ({restaurant['rating']} stars) ")
+                    #st.sidebar.write(f"- {restaurant['name']}")
+                    #st.sidebar.write(f"- {restaurant['phone']}")
+                    #st.sidebar.write(f"- {restaurant['distance']}")
+                    #st.sidebar.write(f"- {restaurant['coordinates']}")
+                    #st.sidebar.write(f"- {restaurant['location']}")
+
+                    restaurant_Name = (restaurant['name'])
+                    restaurant_Phone = (restaurant['phone'])
+                    restaurant_Distance = round((restaurant['distance']),0)
+                    restaurant_Location = (restaurant['location'])
+
+                    st.sidebar.write("Restaurant: ",restaurant_Name)
+                    st.sidebar.write("Phone: ", restaurant_Phone)
+                    st.sidebar.write("Location: ", restaurant_Location)
+                    st.sidebar.write("Distance: ",str(restaurant_Distance) + " m" )
+                    st.sidebar.divider()
+                """
+
+
+            visaChargingStations = togglecol3.toggle ("Show nearby Charging Stations", value=False,key="hej igen")
+            if visaChargingStations:
+
+                map_center = (lat, long)
+
+                # Get nearby EV charging stations
+                charging_stations = get_nearby_charging_stations(lat, long)
+
+                st.write(charging_stations)
+
+                # Create a Pandas DataFrame to store charging station information
+                charging_station_df = pd.DataFrame({
+                    'Name': [station['AddressInfo']['Title'] for station in charging_stations],
+                    'Location': [f"{station['AddressInfo']['AddressLine1']}, {station['AddressInfo']['Town']}" for
+                                 station in charging_stations],
+                    'Latitude': [station['AddressInfo']['Latitude'] for station in charging_stations],
+                    'Longitude': [station['AddressInfo']['Longitude'] for station in charging_stations],
+                    'Distance': [station['AddressInfo']['Distance'] for station in charging_stations]
+                })
+
+                charging_station_df.sort_values(by=['Distance'], inplace=True)
+                st.subheader("")
+
+                # Display the DataFrame
+                st.subheader("Nearby Charging Stations:")
+                st.write(charging_station_df)
+
+
+                charging_map = folium.Map(location=map_center, zoom_start=12)
+                # Add markers for charging stations
+                for i, row in charging_station_df.iterrows():
+                    folium.Marker(
+                        location=[row['Latitude'], row['Longitude']],
+                        popup=f"{row['Name']}\n{row['Location']}",
+                        tooltip=f"{row['Name']}\n{row['Location']}",
+                        icon=folium.Icon(color='green', icon='plug')  # Green marker for charging stations
+                    ).add_to(charging_map)
+
+                # Add a marker for the user's location
+                folium.Marker(
+                    location=[lat, long],
+                    popup="Your Location",
+                    tooltip="Your Location",
+                    icon=folium.Icon(color='blue', icon='info-sign')
+                ).add_to(charging_map)
+                # Display the map in Streamlit
+                st_charging_data = st_folium(charging_map, width=725)
