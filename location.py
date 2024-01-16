@@ -394,7 +394,8 @@ if st.checkbox("Check my location", value=True):
                                  station in charging_stations],
                     'Latitude': [station['AddressInfo']['Latitude'] for station in charging_stations],
                     'Longitude': [station['AddressInfo']['Longitude'] for station in charging_stations],
-                    'Distance': [station['AddressInfo']['Distance'] for station in charging_stations]
+                    'Distance': [station['AddressInfo']['Distance'] for station in charging_stations],
+                    'KW': [station['Connections'][0]['PowerKW'] for station in charging_stations]
                 })
 
                 charging_station_df.sort_values(by=['Distance'], inplace=True)
@@ -410,8 +411,8 @@ if st.checkbox("Check my location", value=True):
                 for i, row in charging_station_df.iterrows():
                     folium.Marker(
                         location=[row['Latitude'], row['Longitude']],
-                        popup=f"{row['Name']}\n{row['Location']}",
-                        tooltip=f"{row['Name']}\n{row['Location']}",
+                        popup=f"{row['Name']}\n{row['Location']}\n{row['KW']}",
+                        tooltip=f"{row['Name']}\n{row['Location']}\n{row['KW']}",
                         icon=folium.Icon(color='green', icon='plug')  # Green marker for charging stations
                     ).add_to(charging_map)
 
