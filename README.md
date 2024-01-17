@@ -1,2 +1,2 @@
-# Simple location detection & info
+# Simple location detection & infos
 Testing simple location detection
