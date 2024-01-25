@@ -251,7 +251,7 @@ if st.checkbox("Check my location", value=True):
             wikiTextZumVorlesen = ""
             if visaWiki:
 
-                nearest_town = st.sidebar.selectbox("Choose location", options=location_adress, index=3)
+                nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
 
                 wiki_info1 = scrape_wikipedia(nearest_town)
                 if wiki_info1 != None:
@@ -275,7 +275,7 @@ if st.checkbox("Check my location", value=True):
                             st.warning("Did not find any info Wikipedia - try a different location")
 
                 if wikiTextZumVorlesen != "":
-                    textToSPeech = st.sidebar.checkbox("Read Infos (Text-to-Speech")
+                    textToSPeech = st.checkbox("Read Infos (Text-to-Speech")
                     if textToSPeech:
                         sound_file = BytesIO()
                         tts = gTTS(wikiTextZumVorlesen, lang='en')
