@@ -245,7 +245,7 @@ if st.checkbox("Check my location", value=True):
                 [lat, long], popup=Town, tooltip=Town
             ).add_to(map)
             # Display the map
-            #st_data = st_folium(map, width=725)
+            #st_data = st_folium(map, width=600)
 
 
             wikiTextZumVorlesen = ""
@@ -256,23 +256,23 @@ if st.checkbox("Check my location", value=True):
                 wiki_info1 = scrape_wikipedia(nearest_town)
                 if wiki_info1 != None:
                     st.sidebar.subheader(f"{nearest_town}")
-                    st.sidebar.write(wiki_info1)
+                    st.write(wiki_info1)
                     wikiTextZumVorlesen = wiki_info1
                 else:
                     st.info("Did not find " + nearest_town + " on Wikipedia")
                     wiki_info2 = scrape_wikipedia(Town)
                     if wiki_info2 != None:
                         st.subheader(f"{Town}")
-                        st.sidebar.write(wiki_info2)
+                        st.write(wiki_info2)
                         wikiTextZumVorlesen = wiki_info2
                     else:
                         wiki_info3 = scrape_wikipedia(Admin1)
                         if wiki_info3 != None:
                             st.subheader(f"{Admin1}")
-                            st.sidebar.write(wiki_info3)
+                            st.write(wiki_info3)
                             wikiTextZumVorlesen = wiki_info3
                         else:
-                            st.sidebar.warning("Did not find any info Wikipedia - try a different location")
+                            st.warning("Did not find any info Wikipedia - try a different location")
 
                 if wikiTextZumVorlesen != "":
                     textToSPeech = st.sidebar.checkbox("Read Infos (Text-to-Speech")
@@ -280,7 +280,7 @@ if st.checkbox("Check my location", value=True):
                         sound_file = BytesIO()
                         tts = gTTS(wikiTextZumVorlesen, lang='en')
                         tts.write_to_fp(sound_file)
-                        st.sidebar.audio(sound_file)
+                        st.audio(sound_file)
 
 
 
