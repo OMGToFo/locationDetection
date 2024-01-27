@@ -80,6 +80,9 @@ st.write(
 
 """
 
+
+
+
 # Copying to clipboard only works with a HTTP connection
 
 #copy_to_clipboard("Text to be copied!", "Copy something to clipboard (only on HTTPS)", "Successfully copied",
@@ -181,6 +184,12 @@ if st.checkbox("Check my location", value=True):
         st.write("Latitude: ",lat)
         st.write("Longitude: ", long)
 
+        screenWidth = streamlit_js_eval(js_expressions='window.innerWidth', key='SCR_Test')
+        st.write("screenWidth: ",screenWidth)
+
+
+
+
 
         #st.write(f"Your coordinates are Latitude: {latitude}, Longitude: {longitude}")
 
@@ -255,7 +264,7 @@ if st.checkbox("Check my location", value=True):
 
                 wiki_info1 = scrape_wikipedia(nearest_town)
                 if wiki_info1 != None:
-                    st.sidebar.subheader(f"{nearest_town}")
+                    st.subheader(f"{nearest_town}")
                     st.write(wiki_info1)
                     wikiTextZumVorlesen = wiki_info1
                 else:
