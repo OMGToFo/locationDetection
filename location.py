@@ -37,7 +37,8 @@ st.set_page_config(
 
 
 
-
+#####Varible def #######
+sound_fileCreated = False
 
 
 def get_timezone(lat, lon):
@@ -184,8 +185,8 @@ if st.checkbox("Check my location", value=True):
         st.write("Latitude: ",lat)
         st.write("Longitude: ", long)
 
-        screenWidth = streamlit_js_eval(js_expressions='window.innerWidth', key='SCR_Test')
-        st.write("screenWidth: ",screenWidth)
+        windowWidth = streamlit_js_eval(js_expressions='window.innerWidth', key='SCR_Test')
+        #st.write("windowWidth: ",windowWidth)
 
 
 
@@ -260,36 +261,67 @@ if st.checkbox("Check my location", value=True):
             wikiTextZumVorlesen = ""
             if visaWiki:
 
-                nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+                if windowWidth < 1000:
+                    nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+                else:
+                    nearest_town = st.sidebar.selectbox("Choose location", options=location_adress, index=3)
+
 
                 wiki_info1 = scrape_wikipedia(nearest_town)
                 if wiki_info1 != None:
-                    st.subheader(f"{nearest_town}")
-                    st.write(wiki_info1)
+
+                    if windowWidth < 1000:
+                        st.subheader(f"{nearest_town}")
+                        st.write(wiki_info1)
+                    else:
+                        st.sidebar.subheader(f"{nearest_town}")
+                        st.sidebar.write(wiki_info1)
+
                     wikiTextZumVorlesen = wiki_info1
                 else:
                     st.info("Did not find " + nearest_town + " on Wikipedia")
                     wiki_info2 = scrape_wikipedia(Town)
+                    wikiTextZumVorlesen = wiki_info2
                     if wiki_info2 != None:
-                        st.subheader(f"{Town}")
-                        st.write(wiki_info2)
-                        wikiTextZumVorlesen = wiki_info2
+                        if windowWidth < 1000:
+                            st.subheader(f"{Town}")
+                            st.write(wiki_info2)
+                        else:
+                            st.sidebar.subheader(f"{Town}")
+                            st.sidebar.write(wiki_info2)
+
                     else:
                         wiki_info3 = scrape_wikipedia(Admin1)
+                        wikiTextZumVorlesen = wiki_info3
+
                         if wiki_info3 != None:
-                            st.subheader(f"{Admin1}")
-                            st.write(wiki_info3)
-                            wikiTextZumVorlesen = wiki_info3
+                            if windowWidth < 1000:
+                                st.subheader(f"{Admin1}")
+                                st.write(wiki_info3)
+                            else:
+                                st.sidebar.subheader(f"{Admin1}")
+                                st.sidebar.write(wiki_info3)
                         else:
                             st.warning("Did not find any info Wikipedia - try a different location")
 
                 if wikiTextZumVorlesen != "":
-                    textToSPeech = st.checkbox("Read Infos (Text-to-Speech")
+                    textToSPeech = st.checkbox("Read Infos (Text-to-Speech)")
+
                     if textToSPeech:
-                        sound_file = BytesIO()
-                        tts = gTTS(wikiTextZumVorlesen, lang='en')
-                        tts.write_to_fp(sound_file)
-                        st.audio(sound_file)
+                        st.info("It may take some time before the audio is ready")
+                        with st.spinner('Creating audio...'):
+                            st.toast('Creating..', icon='😍')
+                            sound_file = BytesIO()
+                            tts = gTTS(wikiTextZumVorlesen, lang='en')
+                            try:
+                                tts.write_to_fp(sound_file)
+                                sound_fileCreated = True
+                            except:
+                                st.warning("Could not generate audio")
+                                sound_fileCreated = False
+                        if sound_fileCreated == True:
+                            st.success("Audiofile created")
+                            st.audio(sound_file)
 
 
 
