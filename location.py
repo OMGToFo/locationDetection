@@ -29,6 +29,14 @@ import pytz
 import pandas as pd
 
 
+#password secrets handling
+import os
+from dotenv import load_dotenv
+load_dotenv(".env")
+
+api_key =  os.getenv("googleMaps_api_key")
+
+
 st.set_page_config(
     page_title="Simple Location Infos",
     page_icon="🧊",
@@ -151,12 +159,35 @@ def get_nearby_charging_stations(latitude, longitude):
 
 
 
+# Define the list of google type words
+typeList = [
+    "restaurant","accounting", "airport", "amusement_park", "aquarium", "art_gallery",
+    "atm", "bakery", "bank", "bar", "beauty_salon", "bicycle_store",
+    "book_store", "bowling_alley", "bus_station", "cafe", "campground",
+    "car_dealer", "car_rental", "car_repair", "car_wash", "casino", "cemetery",
+    "church", "city_hall", "clothing_store", "convenience_store", "courthouse",
+    "dentist", "department_store", "doctor", "drugstore", "electrician",
+    "electronics_store", "embassy", "fire_station", "florist", "funeral_home",
+    "furniture_store", "gas_station", "gym", "hair_care", "hardware_store",
+    "hindu_temple", "home_goods_store", "hospital", "insurance_agency",
+    "jewelry_store", "laundry", "lawyer", "library", "light_rail_station",
+    "liquor_store", "local_government_office", "locksmith", "lodging",
+    "meal_delivery", "meal_takeaway", "mosque", "movie_rental", "movie_theater",
+    "moving_company", "museum", "night_club", "painter", "park", "parking",
+    "pet_store", "pharmacy", "physiotherapist", "plumber", "police", "post_office",
+    "primary_school", "real_estate_agency", "POI", "roofing_contractor",
+    "rv_park", "school", "secondary_school", "shoe_store", "shopping_mall", "spa",
+    "stadium", "storage", "store", "subway_station", "supermarket", "synagogue",
+    "taxi_stand", "tourist_attraction", "train_station", "transit_station",
+    "travel_agency", "university", "veterinary_care", "zoo"
+]
 
 
 
 st.title("Simple Locationinfo")
 
-if st.checkbox("Check my location", value=True):
+#if st.checkbox("Check my location", value=True):
+if 1 == 1:
     loc = get_geolocation()
     if loc:
 
@@ -248,6 +279,20 @@ if st.checkbox("Check my location", value=True):
             visaWiki = togglecol1.toggle ("Show Wikipedia Info", value=False,key="hej")
             visaRestaurants = togglecol2.toggle("Show nearest restaurants")
             visaChargingStations = togglecol3.toggle("Show nearby Charging Stations", value=False, key="hej igen")
+
+            visaGooglePOI = st.toggle("Show POIs by Google", value=False, key="hey Google")
+            if visaGooglePOI:
+                eingabeCol1, eingabeCol2 = st.columns([1, 4])
+
+                radiusEingabe = eingabeCol1.number_input("Radius (km)", value=1)
+                radiusEingabe = radiusEingabe * 1000
+
+                # Create a select box for the user to choose from the list
+                selected_type = eingabeCol2.selectbox("Choose a type", typeList)
+
+
+
+
 
             # Create a map centered around the location
             map = folium.Map(location=[lat, long], zoom_start=15)
@@ -370,8 +415,7 @@ if st.checkbox("Check my location", value=True):
 
 
 
-                # Display the map in Streamlit
-                #st_Restaurang_data = st_folium(restaurant_map, width=725)
+
 
 
 
@@ -401,6 +445,7 @@ if st.checkbox("Check my location", value=True):
                     'AccessComments': [station['AddressInfo']['AccessComments'] for station in charging_stations],
                     #'AccessComments': [station['AddressInfo']['AccessComments'] for station in charging_stations],
                     #'ID_Test': [station['Connections'][0]['StatusType']['ID'] for station in charging_stations],
+                    'UsageCost': [station['UsageCost'] for station in charging_stations],
                 })
 
                 charging_station_df.sort_values(by=['Distance'], inplace=True)
@@ -418,12 +463,102 @@ if st.checkbox("Check my location", value=True):
                     ).add_to(map)
 
 
-                # Display the map in Streamlit
-                #st_charging_data = st_folium(charging_map, width=725)
 
 
-            # Display the map
+
+
+            ########### Fetch POI Data from Google API ###############################
+
+            if visaGooglePOI:
+
+                # Function to fetch nearby POIs using Google Places API
+                def get_nearby_POI(api_key, latitude, longitude, radius=radiusEingabe, types=selected_type):
+                    base_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+                    params = {
+                        'location': f'{lat},{long}',
+                        'radius': radius,
+                        'types': types,
+                        'key': api_key,
+                    }
+                    response = requests.get(base_url, params=params)
+                    data = response.json()
+                    return data.get('results', [])
+
+
+                # Google Map Api
+                # Create a list to store DataFrames for each POI
+                POI_dfs = []
+
+                # Create a DataFrame to store POI information
+                columns = ['Name', 'Type', 'Price Level', 'Rating', 'Opening Hours']
+                POI_df = pd.DataFrame(columns=columns)
+
+                POIs = get_nearby_POI(api_key, lat, long)
+                sorted_POIs = sorted(POIs, key=lambda x: x.get('name', 'N/A'))
+
+                # Display the results and populate the DataFrame
+                if POIs:
+
+                    for idx, POI in enumerate(sorted_POIs):
+                        name = POI.get('name', 'N/A')
+                        r_type = ', '.join(POI.get('types', []))
+                        price_level = POI.get('price_level', 'N/A')
+                        rating = POI.get('rating', 'N/A')
+                        lat = POI['geometry']['location']['lat']
+                        lng = POI['geometry']['location']['lng']
+
+                        # Add marker for each POI
+                        folium.Marker(
+                            location=[lat, lng],
+                            popup=selected_type,
+                            tooltip=f"{idx}. {selected_type} - {name}",
+                            icon=folium.Icon(color='orange')
+                        ).add_to(map)
+
+                        # Extracting opening hours
+                        opening_hours = POI.get('opening_hours', {}).get('weekday_text', 'N/A')
+
+                        # st.write(f"- {name} ({r_type}): Rating - {rating}, Price Level - {price_level}")
+
+                        # Append data to DataFrame
+                        POI_df = pd.DataFrame([{
+                            'Name': name,
+                            'Type': r_type,
+                            'Price Level': price_level,
+                            'Rating': rating,
+                            'Opening Hours': opening_hours,
+                            'lat': lat,
+                            'lng': lng
+
+                        }])
+
+                        # Add the DataFrame to the list
+                        POI_dfs.append(POI_df)
+
+                    # Concatenate the list of DataFrames into a single DataFrame
+                    POI_df = pd.concat(POI_dfs, ignore_index=True)
+
+
+
+                else:
+                    st.warning("No Google Maps Api locations found nearby.")
+
+
+            # Display the map #####################
             st_data= st_folium(map, width=1200)
+
+
+            if visaGooglePOI:
+                # Display DataFrame
+                # st.write("\n**Information DataFrame:**")
+                if len(POI_df) > 1:
+                    st.subheader(f"{selected_type}" + "s" + " at Destination - by Google Maps Api")
+                    st.dataframe(POI_df)
+                if len(POI_df) == 1:
+                    st.subheader(f"{selected_type}" + " at Destination - by Google Maps Api")
+                    st.dataframe(POI_df)
+
+
 
             if visaRestaurants:
                 st.subheader("")
