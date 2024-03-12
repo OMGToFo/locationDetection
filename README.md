@@ -2,4 +2,5 @@
 Testing simple location detection that works in Streamlit using streamlit_js_eval
 - Fetches Info about the location from Wikipedia
 - Nearby restaurants (by Yelp)
-- Charging stations
+- Charging stations from OpenCharge Map
+- POIs from Google Map Api
