@@ -35,6 +35,9 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 api_key =  os.getenv("googleMaps_api_key")
+chargeMaps_api_key = os.getenv("ocm_api_key")
+yelpApiKey = os.getenv("yelp_api_key")
+
 
 
 st.set_page_config(
@@ -122,7 +125,7 @@ def scrape_wikipedia(location_name):
 def get_nearby_restaurants(latitude, longitude):
     # Use an API (e.g., Yelp) to get nearby restaurants based on coordinates
     # Replace 'YOUR_YELP_API_KEY' with your actual Yelp API key
-    yelp_api_key = 'HIjFe3Ef0MKvDF7A0TJsdyMevXeYyQ_yuvLT89rZ5Nc6AcivbTF0J2qCl_4lVvO0QYTTnzQTfj-i9DOQG2328E48SoO-CT_Nl8hMpLvLZsMIuEUuUVfej2MzYYilZXYx'
+    yelp_api_key = yelpApiKey
     yelp_api_url = 'https://api.yelp.com/v3/businesses/search'
 
     headers = {'Authorization': f'Bearer {yelp_api_key}'}
@@ -137,7 +140,7 @@ def get_nearby_restaurants(latitude, longitude):
 def get_nearby_charging_stations(latitude, longitude):
     # Use Open Charge Map API to get nearby EV charging stations
     # Replace 'YOUR_OCM_API_KEY' with your actual Open Charge Map API key
-    ocm_api_key = '2d4b6129-05b6-4dd8-8e06-66584b7a3bc0'
+    ocm_api_key = chargeMaps_api_key
     ocm_api_url = 'https://api.openchargemap.io/v3/poi/'
 
     params = {
