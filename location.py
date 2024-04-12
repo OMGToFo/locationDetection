@@ -279,7 +279,7 @@ if 1 == 1:
         if location:
             togglecol1, togglecol2, togglecol3 = st.columns(3)
 
-            visaWiki = togglecol1.toggle ("Show Wikipedia Info", value=False,key="hej")
+            visaWiki = togglecol1.toggle ("Show Wikipedia Info", value=True,key="hej")
             visaRestaurants = togglecol2.toggle("Show nearest restaurants")
             visaChargingStations = togglecol3.toggle("Show nearby Charging Stations", value=False, key="hej igen")
 
