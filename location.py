@@ -351,7 +351,7 @@ if 1 == 1:
             visaRestaurants = togglecol2.toggle("Show nearest restaurants (from Yelp)")
             visaChargingStations = togglecol3.toggle("Show nearby Charging Stations", value=False, key="hej igen")
 
-            togglecol4, togglecol5 = st.columns(2)
+            togglecol4, togglecol5, togglecol6 = st.columns(3)
 
             visaGooglePOI = togglecol4.toggle("Show POIs by Google", value=False, key="hey Google")
             if visaGooglePOI:
@@ -407,9 +407,9 @@ if 1 == 1:
                     if actualLocationInput != actualLocation:
                         location_adress.insert(0,actualLocationInput)
 
-                        nearest_town = st.selectbox("Choose location", options=location_adress, index=0)
+                        nearest_town = st.sidebar.selectbox("Choose location", options=location_adress, index=0)
                     else:
-                        nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+                        nearest_town = st.sidebar.selectbox("Choose location", options=location_adress, index=3)
 
 
 
