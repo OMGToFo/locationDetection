@@ -63,6 +63,8 @@ st.set_page_config(
 #####Varible def #######
 sound_fileCreated = False
 
+df = pd.DataFrame()
+
 
 
 #####get time #######################################
