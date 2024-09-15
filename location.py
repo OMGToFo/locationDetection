@@ -1,3 +1,5 @@
+#2024.09.15 update mit manueller Ortseingabe
+
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval, copy_to_clipboard, create_share_link, get_geolocation
 import json
@@ -6,6 +8,10 @@ import requests
 from bs4 import BeautifulSoup
 
 import time
+
+from datetime import datetime
+from datetime import date
+from datetime import timedelta
 
 
 from datetime import datetime
@@ -29,6 +35,11 @@ import pytz
 import pandas as pd
 
 
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+
+
+
 #password secrets handling
 import os
 from dotenv import load_dotenv
@@ -37,6 +48,7 @@ load_dotenv(".env")
 api_key =  os.getenv("googleMaps_api_key")
 chargeMaps_api_key = os.getenv("ocm_api_key")
 yelpApiKey = os.getenv("yelp_api_key")
+X_RapidAPI_Key = os.getenv("X-RapidAPI-Key")
 
 
 
@@ -50,6 +62,17 @@ st.set_page_config(
 
 #####Varible def #######
 sound_fileCreated = False
+
+
+
+#####get time #######################################
+
+today = date.today()
+todayString = str(today)
+
+tomorrow = today + timedelta(1)
+
+
 
 
 def get_timezone(lat, lon):
@@ -104,6 +127,15 @@ st.write(
 #create_share_link(dict(
 #    {'title': 'streamlit-js-eval', 'url': 'https://github.com/aghasemi/streamlit_js_eval', 'text': "A description"}),
   #                "Share a URL (only on mobile devices)", 'Successfully shared', component_key='shdemo')
+
+
+
+def get_lat_long_from_address(address):
+   locator = Nominatim(user_agent='thomasTest')
+   location = locator.geocode(address)
+
+   return str(location.latitude) +"," + str(location.longitude)
+
 
 
 
@@ -194,7 +226,7 @@ if 1 == 1:
     loc = get_geolocation()
     if loc:
 
-        gelocExpander = st.expander("Show geolocation data:")
+        gelocExpander = st.expander("Show geolocation data of your location:")
         with gelocExpander:
             st.write(f"Your coordinates are {loc}")
 
@@ -219,9 +251,41 @@ if 1 == 1:
         st.write("Latitude: ",lat)
         st.write("Longitude: ", long)
 
+        #Nomatim - extract the detected location adress
+        actualLocation = (lat, long)
+        # Initialize Nominatim API
+        geolocator = Nominatim(user_agent="actualLocationAdress")
+
+        # Get the location (address)
+        ActuallocationAdress = geolocator.reverse(actualLocation, exactly_one=True)
+        time.sleep(1)
+
+        # Extract the address
+        Actualaddress = ActuallocationAdress.address
+        # Output the address
+        #st.write(f"The address detected for yor location is: {Actualaddress}")
+
+        actualLocationInput = st.text_input("  ", value=Actualaddress)
+
+        if actualLocationInput != Actualaddress:
+            #st.info(actualLocationInput)
+
+            # Initialize geolocator
+            geolocator = Nominatim(user_agent="geoapiThomasRouting")
+
+            # Add rate limiter to avoid overwhelming the geocoding service
+            geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+
+            newlocation = geolocator.geocode(actualLocationInput)
+            st.write("Latitude: ",newlocation.latitude)
+            st.write("Longitude: ",newlocation.longitude)
+            lat = newlocation.latitude
+            long = newlocation.longitude
+
+
+
         windowWidth = streamlit_js_eval(js_expressions='window.innerWidth', key='SCR_Test')
         #st.write("windowWidth: ",windowWidth)
-
 
 
 
@@ -231,6 +295,8 @@ if 1 == 1:
 
         st.subheader("")
 
+        locationInfoCol1, locationInfoCol2 = st.columns(2)
+
         from geopy.geocoders import Nominatim ########################
 
         time.sleep(1)
@@ -239,18 +305,17 @@ if 1 == 1:
         location = geolocator.reverse((lat, long), exactly_one=True)
         if location:
             location_adress = location.address.split(",")
-            location_adressExpander = st.expander("location_adress by Nominatim geolocator")
-            with location_adressExpander:
-                st.write("location_adress by Nominatim geolocator: ", location_adress)
 
             nearest_town = location.address.split(",")[3].strip()
 
             strasse = location.address.split(",")[1].strip()
             nr = location.address.split(",")[0].strip()
 
-            st.write(strasse + " " + nr)
-
-            st.write("nearest_town:", nearest_town)
+            location_adressExpander = locationInfoCol1.expander("location_adress by Nominatim")
+            with location_adressExpander:
+                st.write("location_adress by Nominatim geolocator: ", location_adress)
+                st.write(strasse + " " + nr)
+                st.write("nearest_town:", nearest_town)
 
         st.subheader("")
 
@@ -259,18 +324,21 @@ if 1 == 1:
         searchLokalInfo = rg.search(coordinates)
         if searchLokalInfo:
 
-            searchLokalInfoExpander = st.expander("searchLokalInfo by reverse_geocoder")
-            with searchLokalInfoExpander:
-                st.write("searchLokalInfo by reverse_geocoder: ",searchLokalInfo)
+
 
             searchLokalInfo_name = [x.get('name') for x in searchLokalInfo]
             #st.write("searchLokalInfo_name: ", searchLokalInfo_name)
             Town = searchLokalInfo_name[0]
-            st.write("Town: ", Town)
+
 
             searchLokalInfo_admin1 = [y.get('admin1') for y in searchLokalInfo]
             Admin1 = searchLokalInfo_admin1[0]
-            st.write("Admin1: ", Admin1)
+
+            searchLokalInfoExpander = locationInfoCol2.expander("searchLokalInfo by reverse_geocoder")
+            with searchLokalInfoExpander:
+                st.write("searchLokalInfo by reverse_geocoder: ",searchLokalInfo)
+                st.write("Town: ", Town)
+                st.write("Admin1: ", Admin1)
 
 
 
@@ -280,10 +348,12 @@ if 1 == 1:
             togglecol1, togglecol2, togglecol3 = st.columns(3)
 
             visaWiki = togglecol1.toggle ("Show Wikipedia Info", value=True,key="hej")
-            visaRestaurants = togglecol2.toggle("Show nearest restaurants")
+            visaRestaurants = togglecol2.toggle("Show nearest restaurants (from Yelp)")
             visaChargingStations = togglecol3.toggle("Show nearby Charging Stations", value=False, key="hej igen")
 
-            visaGooglePOI = st.toggle("Show POIs by Google", value=False, key="hey Google")
+            togglecol4, togglecol5 = st.columns(2)
+
+            visaGooglePOI = togglecol4.toggle("Show POIs by Google", value=False, key="hey Google")
             if visaGooglePOI:
                 eingabeCol1, eingabeCol2 = st.columns([1, 4])
 
@@ -292,6 +362,23 @@ if 1 == 1:
 
                 # Create a select box for the user to choose from the list
                 selected_type = eingabeCol2.selectbox("Choose a type", typeList)
+
+
+
+            visaBookingComHotel = togglecol5.toggle("Show Hotels from Booking.com", value=False, key="hey BookingCom")
+            if visaBookingComHotel:
+                st.divider()
+                st.text("Settings for Hotel Bookings:")
+                bookingCo1, bookingCol2, bookingCol3 = st.columns(3)
+                numerOfAdults = bookingCo1.number_input("Number of adults", value=1)
+                numerOfAdultsString = str(numerOfAdults)
+
+                CheckInDate = bookingCol2.date_input("Check-In Date", today, key="end")
+                CheckOutDate = bookingCol3.date_input("Check-Out Date", tomorrow, key="start")
+                st.divider()
+
+
+
 
 
 
@@ -310,9 +397,21 @@ if 1 == 1:
             if visaWiki:
 
                 if windowWidth < 1000:
-                    nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
-                else:
-                    nearest_town = st.sidebar.selectbox("Choose location", options=location_adress, index=3)
+                    if actualLocationInput != actualLocation:
+                        location_adress.insert(0,actualLocationInput)
+                        nearest_town = st.selectbox("Choose location", options=location_adress, index=0)
+                    else:
+                        nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+
+                if windowWidth >= 1000:
+                    if actualLocationInput != actualLocation:
+                        location_adress.insert(0,actualLocationInput)
+
+                        nearest_town = st.selectbox("Choose location", options=location_adress, index=0)
+                    else:
+                        nearest_town = st.selectbox("Choose location", options=location_adress, index=3)
+
+
 
 
                 wiki_info1 = scrape_wikipedia(nearest_town)
@@ -327,7 +426,7 @@ if 1 == 1:
 
                     wikiTextZumVorlesen = wiki_info1
                 else:
-                    st.info("Did not find " + nearest_town + " on Wikipedia")
+                    st.sidebar.info("Did not find " + nearest_town + " on Wikipedia")
                     wiki_info2 = scrape_wikipedia(Town)
                     wikiTextZumVorlesen = wiki_info2
                     if wiki_info2 != None:
@@ -375,7 +474,7 @@ if 1 == 1:
 
 
             if visaRestaurants:
-                # Display nearby restaurants
+                # Display nearby restaurants by Yelp
                 restaurants = get_nearby_restaurants(lat, long)
 
                 # Create a Pandas DataFrame to store restaurant information
@@ -546,6 +645,123 @@ if 1 == 1:
                 else:
                     st.warning("No Google Maps Api locations found nearby.")
 
+            if visaBookingComHotel:  ##########################
+
+                # API request setup
+                url = "https://booking-com.p.rapidapi.com/v1/hotels/search-by-coordinates"
+
+                querystring = {
+                    "adults_number": numerOfAdultsString,
+                    "checkin_date": CheckInDate,
+                    "children_number": "1",
+                    "locale": "en-gb",
+                    "room_number": "1",
+                    "units": "metric",
+                    "filter_by_currency": "CHF",
+                    "longitude": str(long),
+                    "children_ages": "5,0",
+                    "checkout_date": CheckOutDate,
+                    "latitude": str(lat),
+                    "order_by": "popularity",
+                    "include_adjacency": "true",
+                    "page_number": "0",
+                    "categories_filter_ids": "class::2,class::4,free_cancellation::1"
+                }
+
+                headers = {
+                    "x-rapidapi-key": X_RapidAPI_Key,
+                    "x-rapidapi-host": "booking-com.p.rapidapi.com"
+                }
+
+                # Send the request
+                response = requests.get(url, headers=headers, params=querystring)
+
+                # st.info(response.status_code)
+
+                if response.status_code == 200:
+
+                    # Extract JSON data
+                    data = response.json()
+
+                    # Extract the required information for each hotel
+                    hotels = data.get("result", [])
+
+                    if (len(hotels)) == 0:
+                        st.warning("Found no available hotels on booking.com")
+
+                    if (len(hotels)) > 0:
+                        # Define the columns and extract data
+                        hotel_data = []
+                        for hotel in hotels:
+                            hotel_info = {
+                                "hotel_name": hotel.get("hotel_name"),
+                                "address": hotel.get("address"),
+                                "min_total_price": hotel.get("min_total_price"),
+                                "address_trans": hotel.get("address_trans"),
+                                "city_name_en": hotel.get("city_name_en"),
+                                "url": hotel.get("url"),
+                                "city": hotel.get("city"),
+                                "distance": hotel.get("distance"),
+                                "review_score": hotel.get("review_score"),
+                                "review_score_word": hotel.get("review_score_word"),
+                                "latitude": hotel.get("latitude"),
+                                "longitude": hotel.get("longitude"),
+
+                            }
+                            hotel_data.append(hotel_info)
+
+                        # Convert to DataFrame
+                        df = pd.DataFrame(hotel_data)
+
+                        # Reorder the columns to have "hotel_name" as the first column
+                        df = df[[
+                            "hotel_name",
+                            "address",
+                            "min_total_price",
+                            "address_trans",
+                            "city_name_en",
+                            "url",
+                            "city",
+                            "distance",
+                            "review_score",
+                            "review_score_word",
+                            "latitude",
+                            "longitude"
+                        ]]
+
+                        df.sort_values(by='distance', ascending=True)
+
+                        # Display the DataFrame using Streamlit
+                        # st.write(df)
+
+                        # Create a Folium map centered around the average coordinates
+                        # map_center = [df['latitude'].mean(), df['longitude'].mean()]
+                        # mymap = folium.Map(location=map_center, zoom_start=12)
+
+                        # Add markers to the map
+                        # marker_cluster = MarkerCluster().add_to(mymap)
+
+                        for index, row in df.iterrows():
+                            # Create a popup with the hotel name and other details
+                            # popup_text = f"<b>{row['hotel_name']}</b><br>Price: {row['min_total_price']} AED<br>Review: {row['review_score']} ({row['review_score_word']})"
+
+                            # Add a marker for each hotel
+                            folium.Marker(
+                                location=[row['latitude'], row['longitude']],
+                                # popup=folium.Popup(popup_text, max_width=300),
+                                popup=f"{row['hotel_name']}<br>Review score: {row['review_score']}<br>Min Price: {row['min_total_price']}<br>Review: {row['review_score_word']}<br><a href='{row['url']}' target='_blank'>Hotel Link</a>",
+                                tooltip=row["hotel_name"],
+                                icon=folium.Icon(icon="hotel", prefix="fa")  # Using Font Awesome hotel icon
+                            ).add_to(map)
+
+                else:
+                    st.warning("No hotels found.")
+
+
+
+
+
+
 
             # Display the map #####################
             st_data= st_folium(map, width=1200)
@@ -580,3 +796,14 @@ if 1 == 1:
                 chargingApiInfo = st.toggle("Show Open Charging Map API Info")
                 if chargingApiInfo:
                     st.sidebar.write(charging_stations)
+
+
+            if visaBookingComHotel:  ##########################
+                st.subheader("")
+                st.info("Nearby Hotels with available rooms:")
+                st.dataframe(
+                    df,
+                    column_config={
+                        "url": st.column_config.LinkColumn()
+            }
+        )
