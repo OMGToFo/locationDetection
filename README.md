@@ -5,3 +5,6 @@ Testing simple location detection that works in Streamlit using streamlit_js_eva
 - Charging stations from OpenCharge Map
 - POIs from Google Map Api
 - Available Hotels from Booking.com (radipdApi)
+
+See app at
+  https://simplelocationinfos.streamlit.app
